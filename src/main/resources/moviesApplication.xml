@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:int="http://www.springframework.org/schema/integration"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:int-file="http://www.springframework.org/schema/integration/file"
+       xmlns:task="http://www.springframework.org/schema/task"
+       xmlns:int-jdbc="http://www.springframework.org/schema/integration/jdbc"
+       xmlns:jdbc="http://www.springframework.org/schema/jdbc"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+           http://www.springframework.org/schema/integration http://www.springframework.org/schema/integration/spring-integration-5.1.xsd
+           http://www.springframework.org/schema/integration/file http://www.springframework.org/schema/integration/file/spring-integration-file-5.1.xsd
+           http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+           http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task.xsd
+           http://www.springframework.org/schema/jdbc https://www.springframework.org/schema/jdbc/spring-jdbc.xsd
+           http://www.springframework.org/schema/integration/jdbc https://www.springframework.org/schema/integration/jdbc/spring-integration-jdbc.xsd
+">
+
+    <context:component-scan base-package="fr.lacazethomas.movieApplication"/>
+
+    <jdbc:embedded-database id="datasource" type="H2">
+        <jdbc:script location="classpath:setup-tables.sql"/>
+    </jdbc:embedded-database>
+
+
+    <int-file:inbound-channel-adapter
+            channel="CSVInput"
+            directory="./dataIn"
+            filename-pattern="*.csv">
+        <int:poller fixed-delay="5000" receive-timeout="5000"
+                    task-executor="pollerExecutor">
+        </int:poller>
+    </int-file:inbound-channel-adapter>
+
+    <int-file:splitter apply-sequence="false" charset="UTF-8" first-line-as-header="true"
+                       input-channel="CSVInput" output-channel="SplittedCSV" auto-startup="true"/>
+
+    <int:transformer input-channel="SplittedCSV"
+                     output-channel="SplittedCSVWithUpperCase"
+                     expression="payload.toUpperCase()"/>
+
+    <int:header-value-router input-channel="SplittedCSVWithUpperCase" header-name="file_name"
+                             resolution-required="false">
+        <int:mapping value="movies.csv" channel="Movie"/>
+        <int:mapping value="actors.csv" channel="Actor"/>
+    </int:header-value-router>
+
+    <int:transformer input-channel="Movie" output-channel="MergedChannel" ref="mapToObject" method="mapMovie"/>
+    <int:transformer input-channel="Actor" output-channel="MergedChannel" ref="mapToObject" method="mapActor"/>
+
+
+    <int:recipient-list-router id="customRouter" input-channel="MergedChannel">
+        <int:recipient channel="MergedChannelToDB"/>
+        <int:recipient channel="MergedChannelToJson"/>
+    </int:recipient-list-router>
+
+
+    <int:channel id="MergedChannelMoviesFiltered"/>
+    <int:channel id="MergedChannelActorsFiltered"/>
+    <int:header-value-router input-channel="MergedChannelToDB" header-name="file_name">
+        <int:mapping value="movies.csv" channel="MergedChannelMoviesFiltered"/>
+        <int:mapping value="actors.csv" channel="MergedChannelActorsFiltered"/>
+    </int:header-value-router>
+
+    <int-jdbc:outbound-channel-adapter
+            query="insert into movies (id, rank, rating, title, releaseDate) values (:payload.id, :payload.rank, :payload.rating, :payload.title, :payload.releaseDate)"
+            data-source="datasource"
+            channel="MergedChannelMoviesFiltered"/>
+
+    <int-jdbc:outbound-channel-adapter
+            query="insert into actors (id, firstName, lastName, birthDate) values (:payload.id, :payload.firstName, :payload.lastName, :payload.birthDate)"
+            data-source="datasource"
+            channel="MergedChannelActorsFiltered"/>
+
+    <int:channel id="MergedChannelAggregator"/>
+    <int:aggregator id="myAggregator"
+                    input-channel="MergedChannelToJson"
+                    output-channel="MergedChannelAggregator"
+                    correlation-strategy-expression="headers.file_originalFile"
+                    release-strategy-expression="size()==3">
+    </int:aggregator>
+
+    <int:channel id="JsonOuput"/>
+    <int:object-to-json-transformer input-channel="MergedChannelAggregator" output-channel="JsonOuput"/>
+    <int-file:outbound-channel-adapter channel="JsonOuput" filename-generator="nameGenerator"
+                                       directory="./dataOut" append-new-line="true"/>
+
+    <task:executor id="pollerExecutor"/>
+</beans>
