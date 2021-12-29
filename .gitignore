@@ -37,3 +37,5 @@ gradle-app.setting
 .DS_Store
 dataOut/actors.json
 dataOut/movies.json
+bin
+*.drawio
