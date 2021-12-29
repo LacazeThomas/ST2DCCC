@@ -215,7 +215,7 @@ server.port=8080
 logging.level.root=DEBUG
 ```
 
-## 🛠️ Installation Steps
+## Installation Steps
 
 
 Import the project under IntelliJ IDEA (File -> Open and select the project's folder). You can now run the program via `run` menu.
