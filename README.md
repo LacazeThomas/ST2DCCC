@@ -16,6 +16,24 @@ The application reads CSV files in order to transform them into objects and send
 
 # Demonstration
 
+![Stack](images/embedded-database.png)
+![Stack](images/inbound-channel-adapter.png)
+![Stack](images/splitter.png)
+![Stack](images/transformer.png)
+![Stack](images/header-value-router.png)
+![Stack](images/transformer2.png)
+![Stack](images/recipient-list-router.png)
+![Stack](images/header-value-router2.png)
+![Stack](images/outbound-channel-adapter.png)
+![Stack](images/outbound-channel-adapter2.png)
+![Stack](images/aggregator.png)
+![Stack](images/object-to-json-transformer.png)
+![Stack](images/outbound-channel-adapter3.png)
+
+
+
+
+
 ## Inputs
 
 `Movie.csv`
@@ -73,7 +91,8 @@ We can see the result of the `int-jdbc:outbound-channel-adapter` using the H2 co
 ]
 ```
 
-# Explanation 
+# Explanation of `moviesApplication.xml`
+
 
 
 ## Problem encountered 
