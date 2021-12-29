@@ -14,10 +14,6 @@ Code source is available on **[Github](https://github.com/LacazeThomas/ST2DCCC)*
 
 The application reads CSV files in order to transform them into objects and sends them to a database as well as JSON files.
 
-# Explanation 
-
-
-
 # Demonstration
 
 ## Inputs
@@ -51,7 +47,7 @@ We can see the result of the `int-jdbc:outbound-channel-adapter` using the H2 co
 
 
 #### JSON output
-```JSON
+```json
 [   
     {
         "id":1,
@@ -77,9 +73,40 @@ We can see the result of the `int-jdbc:outbound-channel-adapter` using the H2 co
 ]
 ```
 
+# Explanation 
+
+
 ## Problem encountered 
 
-H2 console in Web
+In order to observe the result to the database, it was necessary to be able to inspect the H2 database. 
+
+It was necessary for that to start Spring in a classical way and to add a dependency to launch a tomcat server with annotation for XML ressource. 
+
+Then, we had to create an 'application.properties' file in order to launch an H2 console accessible at [localhost:8080/h2-console](localhost:8080/h2-console)
+
+
+`main.java`
+```java
+@SpringBootApplication
+@ImportResource("classpath:moviesApplication.xml")
+public class Main {
+	public static void main(String[] args) {
+		SpringApplication.run(Main.class, args);
+	}
+}
+```
+
+
+`application.properties`
+```properties
+spring.h2.console.enabled=true
+spring.h2.console.path=/h2-console
+
+server.port=8080
+logging.level.root=DEBUG
+```
+
+
 
 # License
 
