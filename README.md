@@ -10,31 +10,15 @@ Code source is available on **[Github](https://github.com/LacazeThomas/ST2DCCC)*
 
 ![Stack](images/stack.svg)
 
-# Description
+## Description
 
 The application reads CSV files in order to transform them into objects and sends them to a database as well as JSON files.
 
 
-
-![Stack](images/embedded-database.png)
-![Stack](images/inbound-channel-adapter.png)
-![Stack](images/splitter.png)
-![Stack](images/transformer.png)
-![Stack](images/header-value-router.png)
-![Stack](images/transformer2.png)
-![Stack](images/recipient-list-router.png)
-![Stack](images/header-value-router2.png)
-![Stack](images/outbound-channel-adapter.png)
-![Stack](images/outbound-channel-adapter2.png)
-![Stack](images/aggregator.png)
-![Stack](images/object-to-json-transformer.png)
-![Stack](images/outbound-channel-adapter3.png)
+## Demonstration
 
 
-# Demonstration
-
-
-## Inputs
+### Inputs
 
 `Movie.csv`
 ```csv
@@ -52,7 +36,7 @@ Actor ID;FirstName;LastName;BithDate;Movies ID
 3;Tobey;Maguire;1975-06-27;[101]
 ```
 
-## Outputs
+### Outputs
 
 #### H2 Database output
 
@@ -91,9 +75,21 @@ We can see the result of the `int-jdbc:outbound-channel-adapter` using the H2 co
 ]
 ```
 
-# Explanation of `moviesApplication.xml`
+## Explanation of `moviesApplication.xml`
 
-
+![Stack](images/embedded-database.png)
+![Stack](images/inbound-channel-adapter.png)
+![Stack](images/splitter.png)
+![Stack](images/transformer.png)
+![Stack](images/header-value-router.png)
+![Stack](images/transformer2.png)
+![Stack](images/recipient-list-router.png)
+![Stack](images/header-value-router2.png)
+![Stack](images/outbound-channel-adapter.png)
+![Stack](images/outbound-channel-adapter2.png)
+![Stack](images/aggregator.png)
+![Stack](images/object-to-json-transformer.png)
+![Stack](images/outbound-channel-adapter3.png)
 
 ## Problem encountered 
 
@@ -115,7 +111,6 @@ public class Main {
 }
 ```
 
-
 `application.properties`
 ```properties
 spring.h2.console.enabled=true
@@ -125,6 +120,10 @@ server.port=8080
 logging.level.root=DEBUG
 ```
 
+## 🛠️ Installation Steps
+
+
+Import the project under IntelliJ IDEA (File -> Open and select the project's folder). You can now run the program via `run` menu.
 
 
 # License
