@@ -77,19 +77,114 @@ We can see the result of the `int-jdbc:outbound-channel-adapter` using the H2 co
 
 ## Explanation of `moviesApplication.xml`
 
-![Stack](images/embedded-database.png)
-![Stack](images/inbound-channel-adapter.png)
-![Stack](images/splitter.png)
-![Stack](images/transformer.png)
-![Stack](images/header-value-router.png)
-![Stack](images/transformer2.png)
-![Stack](images/recipient-list-router.png)
-![Stack](images/header-value-router2.png)
-![Stack](images/outbound-channel-adapter.png)
-![Stack](images/outbound-channel-adapter2.png)
-![Stack](images/aggregator.png)
-![Stack](images/object-to-json-transformer.png)
-![Stack](images/outbound-channel-adapter3.png)
+```xml
+    <jdbc:embedded-database id="datasource" type="H2">
+        <jdbc:script location="classpath:setup-tables.sql"/>
+    </jdbc:embedded-database>
+```
+
+First we have `jdbc:embedded-database` which permits to create a H2 database and to initialize it with the `setup-tables.sql` script.
+
+```xml
+    <int-file:inbound-channel-adapter
+            channel="CSVInput"
+            directory="./dataIn"
+            filename-pattern="*.csv">
+        <int:poller fixed-delay="5000" receive-timeout="5000" task-executor="pollerExecu or">
+        </int:poller>
+    </int-file:inbound-channel-adapter>
+```
+Next to that, we have an `int-file:inbound-channel-adapter` that allows to read CSV files in the `dataIn` directory, in order to send the information in the `CSVInput` channel.
+```xml
+    <int-file:splitter apply-sequence="false" charset="UTF-8" first-line-as-header="true"
+                       input-channel="CSVInput" output-channel="SplittedCSV" auto-startup="true"/>
+```
+
+Once the data is sent to the `CSVInput` channel. We have an `int-file:splitter` which allows us to split the CSV files into several lines and send them to the `SplittedCSV` channel.
+
+```xml
+    <int:transformer input-channel="SplittedCSV"
+                     output-channel="SplittedCSVWithUpperCase"
+                     expression="payload.toUpperCase()"/>
+```
+
+Each line is transformed: the payload is converted to uppercase only, the result is sent to the channel `SplittedCSVWithUpperCase`.
+
+```xml
+    <int:header-value-router input-channel="SplittedCSVWithUpperCase" header-name="file_name"
+                             resolution-required="false">
+        <int:mapping value="movies.csv" channel="Movie"/>
+        <int:mapping value="actors.csv" channel="Actor"/>
+    </int:header-value-router>
+```
+
+Then we have an `int:header-value-router` that allows us to decide which stream to use based on the file name. If the file is `movies.csv` then the stream will be `Movie` or the file is `actors.csv` then the stream will be `Actor`.
+
+```xml
+    <int:transformer input-channel="Movie" output-channel="MergedChannel" ref="mapToObject" method="mapMovie"/>
+    <int:transformer input-channel="Actor" output-channel="MergedChannel" ref="mapToObject" method="mapActor"/>
+```
+
+We have again an `int:transformer` which allows to transform CSV rows into objects thanks to the `mapMovie` and `mapActor` functions.
+
+```xml
+    <int:recipient-list-router id="customRouter" input-channel="MergedChannel">
+        <int:recipient channel="MergedChannelToDB"/>
+        <int:recipient channel="MergedChannelToJson"/>
+    </int:recipient-list-router>
+```
+
+The result of the transformation is pushed into the `MergedChannel` channel which is then sent into the `MergedChannelToDB` and `MergedChannelToJson` channels: the stream is thus sent into both channels.
+
+```xml
+    <int:channel id="MergedChannelMoviesFiltered"/>
+    <int:channel id="MergedChannelActorsFiltered"/>
+    <int:header-value-router input-channel="MergedChannelToDB" header-name="file_name">
+        <int:mapping value="movies.csv" channel="MergedChannelMoviesFiltered"/>
+        <int:mapping value="actors.csv" channel="MergedChannelActorsFiltered"/>
+    </int:header-value-router>
+```
+The channel `MergedChannelToDB` is filtered according to the name of the file in the header. In order to be able to insert in the database according to the `Movie` object or the `Actor` object. So the `Movies` are sent in the channel `MergedChannelMoviesFiltered` and the `Actors` in the channel `MergedChannelActorsFiltered`.
+
+```xml
+    <int-jdbc:outbound-channel-adapter
+            query="insert into movies (id, rank, rating, title, releaseDate) values (:payload.id, :payload.rank, :payload.rating, :payload.title, :payload.releaseDate)"
+            data-source="datasource"
+            channel="MergedChannelMoviesFiltered"/>
+
+    <int-jdbc:outbound-channel-adapter
+            query="insert into actors (id, firstName, lastName, birthDate) values (:payload.id, :payload.firstName, :payload.lastName, :payload.birthDate)"
+            data-source="datasource"
+            channel="MergedChannelActorsFiltered"/>
+```
+Once the `Movies` and `Actors` are separated, we have an `int-jdbc:outbound-channel-adapter` that allows us to insert the data into the database. Depending on the structure of the table and the object.
+
+```xml
+    <int:channel id="MergedChannelAggregator"/>
+    <int:aggregator id="myAggregator"
+                    input-channel="MergedChannelToJson"
+                    output-channel="MergedChannelAggregator"
+                    correlation-strategy-expression="headers.file_originalFile"
+                    release-strategy-expression="size()==3">
+    </int:aggregator>
+```
+
+We come back here after the separation of the `MergedChannel` into `MergedChannelToJson` and `MergedChannelToDB`. We have on the `MergedChannelToJson` side an `int:aggregator` which allows to group objects into an object list. This is very important when we split the CSV file. So we apply two conditions: 
+- Group the objects according to the name of the original CSV file in the header.
+- Release objects according to the size of the list.
+
+We have 3 actors and 3 movies. So we want to release the whole thing once we have 3 objects in the list.
+
+```xml
+    <int:channel id="JsonOuput"/>
+    <int:object-to-json-transformer input-channel="MergedChannelAggregator" output-channel="JsonOuput"/>
+    <int-file:outbound-channel-adapter channel="JsonOuput" filename-generator="nameGenerator"
+                                       directory="./dataOut" append-new-line="true"/>
+
+```
+
+Once the objects are grouped we can convert them to JSON and send them to the `JsonOuput` channel. So that `int-file:outbound-channel-adapter` can generate a JSON file from the objects. We use a `nameGenerator` method that generates a file name from the name of the original CSV file that is present in the stream header.
+
 
 ## Problem encountered 
 
@@ -126,6 +221,6 @@ logging.level.root=DEBUG
 Import the project under IntelliJ IDEA (File -> Open and select the project's folder). You can now run the program via `run` menu.
 
 
-# License
+## License
 
 **[MIT](https://github.com/LacazeThomas/ST2DCCC/blob/master/LICENSE)**
