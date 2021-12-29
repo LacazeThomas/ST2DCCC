@@ -14,7 +14,7 @@ Code source is available on **[Github](https://github.com/LacazeThomas/ST2DCCC)*
 
 The application reads CSV files in order to transform them into objects and sends them to a database as well as JSON files.
 
-# Demonstration
+
 
 ![Stack](images/embedded-database.png)
 ![Stack](images/inbound-channel-adapter.png)
@@ -31,7 +31,7 @@ The application reads CSV files in order to transform them into objects and send
 ![Stack](images/outbound-channel-adapter3.png)
 
 
-
+# Demonstration
 
 
 ## Inputs
