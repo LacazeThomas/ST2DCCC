@@ -39,3 +39,4 @@ dataOut/actors.json
 dataOut/movies.json
 bin
 *.drawio
+README.pdf
