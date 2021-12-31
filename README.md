@@ -16,8 +16,6 @@ The application reads CSV files in order to transform them into objects and send
 
 
 ## Demonstration
-
-
 ### Inputs
 
 `Movie.csv`
@@ -36,6 +34,8 @@ Actor ID;FirstName;LastName;BithDate;Movies ID
 3;Tobey;Maguire;1975-06-27;[101]
 ```
 
+<div style="page-break-after: always;"></div>
+
 ### Outputs
 
 #### H2 Database output
@@ -46,7 +46,7 @@ We can see the result of the `int-jdbc:outbound-channel-adapter` using the H2 co
 
 ![Movie table](images/movies-db.png)
 
-
+<div style="page-break-after: always;"></div>
 
 #### JSON output
 ```json
@@ -74,6 +74,8 @@ We can see the result of the `int-jdbc:outbound-channel-adapter` using the H2 co
     }
 ]
 ```
+
+<div style="page-break-after: always;"></div>
 
 ## Explanation of `moviesApplication.xml`
 
@@ -110,6 +112,8 @@ Once the data is sent to the `CSVInput` channel. We have an `int-file:splitter` 
 
 Each line is transformed: the payload is converted to uppercase only, the result is sent to the channel `SplittedCSVWithUpperCase`.
 
+<div style="page-break-after: always;"></div>
+
 ```xml
     <int:header-value-router input-channel="SplittedCSVWithUpperCase" header-name="file_name"
                              resolution-required="false">
@@ -145,6 +149,8 @@ The result of the transformation is pushed into the `MergedChannel` channel whic
     </int:header-value-router>
 ```
 The channel `MergedChannelToDB` is filtered according to the name of the file in the header. In order to be able to insert in the database according to the `Movie` object or the `Actor` object. So the `Movies` are sent in the channel `MergedChannelMoviesFiltered` and the `Actors` in the channel `MergedChannelActorsFiltered`.
+
+<div style="page-break-after: always;"></div>
 
 ```xml
     <int-jdbc:outbound-channel-adapter
@@ -185,6 +191,7 @@ We have 3 actors and 3 movies. So we want to release the whole thing once we hav
 
 Once the objects are grouped we can convert them to JSON and send them to the `JsonOuput` channel. So that `int-file:outbound-channel-adapter` can generate a JSON file from the objects. We use a `nameGenerator` method that generates a file name from the name of the original CSV file that is present in the stream header.
 
+<div style="page-break-after: always;"></div>
 
 ## Problem encountered 
 
@@ -217,9 +224,7 @@ logging.level.root=DEBUG
 
 ## Installation Steps
 
-
-Import the project under IntelliJ IDEA (File -> Open and select the project's folder). You can now run the program via `run` menu.
-
+Import the project in IntelliJ IDEA (File -> Open and select the project's folder). You can now run the program via `run` menu.
 
 ## License
 
